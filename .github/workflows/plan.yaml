@@ -1,6 +1,7 @@
 name: terraform plan
 
 on:
+  workflow_dispatch:
   pull_request:
     paths: ["**.tf"]
 
@@ -15,9 +16,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0 ref: https://github.com/actions/checkout/commit/08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Run tflint & comment to PR
+        uses: reviewdog/action-tflint@54a5e5aed57dcfbb4662ec548de876df33d6288d # v1.25.0 ref: https://github.com/reviewdog/action-tflint/commit/54a5e5aed57dcfbb4662ec548de876df33d6288d
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          fail_on_error: true
+      - name: Run Trivy (tfsec) for best practices & naming
+        uses: reviewdog/action-trivy@a1e6d7dd5520369c076d7ce639a16442938535d8  # v1.14.0 ref: https://github.com/reviewdog/action-trivy/releases/tag/v1.14.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          trivy_command: config
+          trivy_target: .
+          level: warning
+          filter_mode: nofilter
+          tflint_init: true
+
   terraform-plan:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: static-analysis
     permissions:
       contents: read
       models: read
