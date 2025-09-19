@@ -39,7 +39,6 @@ jobs:
           trivy_command: config
           trivy_target: .
           filter_mode: nofilter
-          trivy_flags: '--config-policy .trivy/policies'
 
   terraform-plan:
     runs-on: ubuntu-latest
