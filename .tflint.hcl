@@ -1,8 +1,7 @@
-plugin "docker" {
+plugin "terraform" {
   enabled = true
-}
+  preset  = "recommended"
 
-rule "docker_container_invalid_name" {
-  enabled = true
-  name_pattern = "^[a-z][a-z0-9-]{2,}$"
+  version = "0.13.0"
+  source  = "github.com/terraform-linters/tflint-ruleset-terraform"
 }

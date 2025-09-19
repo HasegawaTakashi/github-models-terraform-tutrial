@@ -15,3 +15,7 @@ resource "docker_container" "nginx" {
     value = "test"
   }
 }
+
+variable "test" {
+
+}
