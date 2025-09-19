@@ -1,0 +1,96 @@
+name: terraform plan
+
+on:
+  pull_request:
+    paths: ["**.tf"]
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      models: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0 ref: https://github.com/actions/checkout/releases/tag/v5.0.0
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2 ref: https://github.com/hashicorp/setup-terraform/releases/tag/v3.1.2
+        with:
+          terraform_version: "1.13.3"
+
+      - name: terraform plan
+        id: tf-plan
+        run: |
+          terraform init
+          terraform plan | tee plan.txt
+
+          ### Verbose output may contain sensitive information. #########################
+          ### Please ensure secrets and confidential data are not exposed in logs.
+          # terraform plan -out=tfplan
+          # terraform show -json tfplan > tfplan.json
+          # EOF=$(uuidgen)
+          # {
+          #   echo "result<<$EOF"
+          #   sed 's/\x1b\[[0-9;]*[m]//g' tfplan.json
+          #   echo "$EOF"
+          # } >> "$GITHUB_OUTPUT"
+          ###############################################################################
+
+          EOF=$(uuidgen)
+          {
+            echo "result<<$EOF"
+            sed 's/\x1b\[[0-9;]*[m]//g' plan.txt
+            echo "$EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/ai-inference@a1c11829223a786afe3b5663db904a3aa1eac3a2 #v2.0.1 ref: https://github.com/actions/ai-inference/commit/a1c11829223a786afe3b5663db904a3aa1eac3a2
+        id: summary
+        with:
+          model: openai/gpt-4o
+          max-tokens: 4000
+          prompt: ${{ steps.tf-plan.outputs.result }}
+          system-prompt: |
+            あなたは `terraform plan` の実行結果を要約する AI アシスタントです。
+            ユーザーから渡された `terraform plan` の実行結果をわかりやすく日本語で要約し、以下のフォーマットに従って Markdown 形式で出力してください。
+
+            # Summary
+
+            <terraform plan の実行結果について簡潔にまとめてください。>
+
+            ## Create
+
+            <作成されるリソースについてまとめてください。>
+
+            ## Update
+
+            <更新されるリソースについてまとめてください。>
+
+            ## Delete
+
+            <削除されるリソースについてまとめてください。>
+      - uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0 ref: https://github.com/peter-evans/find-comment/commit/3eae4d37986fb5a8592848f6a574fdf654e61f9e
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- TERRAFORM_PLAN_SUMMARY -->'
+      - uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043  # v4.0.0 ref: https://github.com/peter-evans/create-or-update-comment/commit/71345be0265236311c031f5c7866368bd1eff043
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          edit-mode: replace
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            <!-- TERRAFORM_PLAN_SUMMARY -->
+            ${{ steps.summary.outputs.response }}
