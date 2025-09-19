@@ -25,8 +25,6 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0 ref: https://github.com/actions/checkout/commit/08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           persist-credentials: false
-      - name: Init tflint plugins
-        run: tflint --init
       - name: Run tflint & comment to PR
         uses: reviewdog/action-tflint@54a5e5aed57dcfbb4662ec548de876df33d6288d # v1.25.0 ref: https://github.com/reviewdog/action-tflint/commit/54a5e5aed57dcfbb4662ec548de876df33d6288d
         with:
