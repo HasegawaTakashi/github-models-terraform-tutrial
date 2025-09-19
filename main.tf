@@ -1,13 +1,13 @@
 resource "docker_image" "nginx1" {
-  name = "nginx:latest"
+  name         = "nginx:latest"
   keep_locally = true
 }
 
 resource "docker_container" "nginx" {
   image = docker_image.nginx1.image_id
-  name         = "x"
+  name  = "x"
   ports {
-      internal = 80
+    internal = 80
     external = 8080
   }
   labels {
