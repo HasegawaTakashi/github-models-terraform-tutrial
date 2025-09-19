@@ -38,7 +38,6 @@ jobs:
           reporter: github-pr-review
           trivy_command: config
           trivy_target: .
-          trivy_flags: '--format table'
           filter_mode: nofilter
 
   terraform-plan:
